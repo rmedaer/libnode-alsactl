@@ -18,6 +18,24 @@ using v8::Array;
 using v8::Null;
 
 
+Local<Number> alsactl_format_control_access(
+    Isolate *isolate,
+    snd_ctl_elem_info_t *info)
+{
+    int access = 0;
+
+    access += 1   * snd_ctl_elem_info_is_readable(info);
+    access += 2   * snd_ctl_elem_info_is_writable(info);
+    access += 4   * snd_ctl_elem_info_is_inactive(info);
+    access += 8   * snd_ctl_elem_info_is_volatile(info);
+    access += 16  * snd_ctl_elem_info_is_locked(info);
+    access += 32  * snd_ctl_elem_info_is_tlv_readable(info);
+    access += 64  * snd_ctl_elem_info_is_tlv_writable(info);
+    access += 128 * snd_ctl_elem_info_is_tlv_commandable(info);
+
+    return Number::New(isolate, access);
+}
+
 Local<Array> alsactl_fill_control_items(
     Isolate *isolate,
     snd_hctl_elem_t *elem,
@@ -157,9 +175,13 @@ Local<Value> alsactl_wrap_control(snd_hctl_elem_t *elem) {
     // All gonna be OK, instanciate a new v8 object
     obj = Object::New(isolate);
 
-    // Set device name
+    // Set control name
     obj->Set(String::NewFromUtf8(isolate, "name"),
         String::NewFromUtf8(isolate, snd_ctl_elem_info_get_name(info)));
+
+    // Set control access permission
+    obj->Set(String::NewFromUtf8(isolate, "access"),
+        alsactl_format_control_access(isolate, info));
 
     // Filter by type
     type = snd_ctl_elem_info_get_type(info);
